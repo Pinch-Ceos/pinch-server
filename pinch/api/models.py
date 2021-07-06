@@ -20,8 +20,8 @@ class Base(models.Model):
 
 
 class User(Base):
-    name = models.CharField()
-    email_address = models.CharField(unique=True)
+    name = models.CharField(max_length=100)
+    email_address = models.CharField(max_length=254, unique=True)
     num_of_subs = models.IntegerField(default=0)
     num_of_bookmarks = models.IntegerField(default=0)
     last_login_time = models.DateTimeField()
@@ -39,8 +39,8 @@ class User(Base):
 
 class Subscribe(Base):
     user = models.ManyToManyField(User)
-    name = models.CharField()
-    email_address = models.CharField(unique=True)
+    name = models.CharField(max_length=100)
+    email_address = models.CharField(max_length=254, unique=True)
 
     def __str__(self):
         return self.email_address
