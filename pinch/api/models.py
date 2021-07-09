@@ -1,4 +1,5 @@
 from django.db import models
+from oauth2client.contrib.django_util.models import CredentialsField
 # Create your models here.
 
 '''
@@ -27,6 +28,7 @@ class User(Base):
     last_login_time = models.DateTimeField()
     # TO_DO : 프로필 사진
     # TO_DO : 사용자 access_token, refresh_token 저장
+    credential = CredentialsField()
 
     def __str__(self):
         return self.email_address
