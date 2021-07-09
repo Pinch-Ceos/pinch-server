@@ -22,8 +22,8 @@ class Base(models.Model):
 class User(Base):
     name = models.CharField(max_length=100)
     email_address = models.CharField(max_length=254, unique=True)
-    num_of_subs = models.IntegerField(default=0)
-    num_of_bookmarks = models.IntegerField(default=0)
+    # num_of_subs = models.IntegerField(default=0)
+    # num_of_bookmarks = models.IntegerField(default=0)
     last_login_time = models.DateTimeField()
     # TO_DO : 프로필 사진
     # TO_DO : 사용자 access_token, refresh_token 저장
@@ -37,7 +37,7 @@ class User(Base):
 '''
 
 
-class Subscribe(Base):
+class Subscription(Base):
     user = models.ManyToManyField(User)
     name = models.CharField(max_length=100)
     email_address = models.CharField(max_length=254, unique=True)
@@ -51,12 +51,12 @@ class Subscribe(Base):
 '''
 
 
-class UserSubscribe(Base):
+class UserSubscription(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    subscribe = models.ForeignKey(Subscribe, on_delete=models.CASCADE)
+    subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
 
     def __str__(self):
-        return '{}->{}'.format(self.user.email_address, self.subscribe.email_address)
+        return '{}->{}'.format(self.user.email_address, self.subscription.email_address)
 
 
 '''
