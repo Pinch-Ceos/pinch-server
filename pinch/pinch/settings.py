@@ -138,5 +138,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 JWT_SECRET = secrets['JWT_SECRET']
 
-GOOGLE_OAUTH2_CLIENT_SECRETS_JSON = os.path.join(
-    BASE_DIR, 'client_secrets.json')
+# GOOGLE_OAUTH2_CLIENT_SECRETS_JSON = os.path.join( BASE_DIR, 'client_secrets.json')
+
+
+GOOGLE_OAUTH2_CLIENT_ID = secrets['GOOGLE_OAUTH2_CLIENT_ID']
+GOOGLE_OAUTH2_CLIENT_SECRET = secrets['GOOGLE_OAUTH2_CLIENT_SECRET']

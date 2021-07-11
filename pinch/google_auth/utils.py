@@ -6,7 +6,7 @@ from pinch.settings import JWT_SECRET
 
 def login_decorator(func):
 
-    def wrapper(self, request, *args, **kwargs):
+    def wrapper(request, *args, **kwargs):
 
         # 프론트에서 토큰 정보 제공하지 않았을 경우 -> 401 Unauthorized
         if "Authorization" not in request.headers:
@@ -15,8 +15,7 @@ def login_decorator(func):
         encode_token = request.headers["Authorization"]
 
         try:
-            data = jwt.decode(encode_token, JWT_SECRET, algorithm='HS256')
-
+            data = jwt.decode(encode_token, JWT_SECRET, algorithms='HS256')
             user = User.objects.get(id=data["id"])
             request.user = user
 
@@ -32,6 +31,6 @@ def login_decorator(func):
                 "error_code": "UNKNOWN_USER"
             }, status=401)
 
-        return func(self, request, *args, **kwargs)
+        return func(request, *args, **kwargs)
 
     return wrapper

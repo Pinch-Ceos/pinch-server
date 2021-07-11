@@ -40,7 +40,7 @@ def google_callback(request):
 
     # 테스트 용 코드
     flow = InstalledAppFlow.from_client_secrets_file(
-        'pinch/client_secrets.json',
+        'pinch/client_secrets_.json',
         scopes=['openid',
                 'https://www.googleapis.com/auth/userinfo.email',
                 'https://www.googleapis.com/auth/userinfo.profile',
@@ -77,6 +77,7 @@ def google_callback(request):
         token = jwt.encode({'id': user.id},
                            JWT_SECRET, algorithm='HS256')
         return JsonResponse({
+            'id': user.id,
             'token': token,
             'user_name': name,
             'user_email_address': email_addr
@@ -86,7 +87,7 @@ def google_callback(request):
         # 신규 고객
         user = User.objects.create(
             name=name, email_address=email_addr)
-        storage = DjangoORMStorage(User, 'id', user, 'credential')
+        storage = DjangoORMStorage(User, 'id', user.id, 'credential')
         storage.put(creds)
         # jwt 발급
         token = jwt.encode({'id': user.id},
