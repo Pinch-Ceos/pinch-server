@@ -1,8 +1,10 @@
 from api.models import User
 from google_auth_oauthlib.flow import Flow, InstalledAppFlow
 from googleapiclient.discovery import build
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from oauth2client.contrib.django_util.storage import DjangoORMStorage
+from pinch.settings import JWT_SECRET
+import jwt
 
 # Create your views here.
 """
@@ -38,7 +40,7 @@ def google_callback(request):
 
     # 테스트 용 코드
     flow = InstalledAppFlow.from_client_secrets_file(
-        'pinch/client_secrets_.json',
+        'pinch/client_secrets.json',
         scopes=['openid',
                 'https://www.googleapis.com/auth/userinfo.email',
                 'https://www.googleapis.com/auth/userinfo.profile',
@@ -71,11 +73,26 @@ def google_callback(request):
     try:
         # 기존 고객
         user = User.objects.get(email_address=email_addr)
+        # jwt 발급
+        token = jwt.encode({'id': user.id},
+                           JWT_SECRET, algorithm='HS256')
+        return JsonResponse({
+            'token': token,
+            'user_name': name,
+            'user_email_address': email_addr
+        }, status=200)
 
     except User.DoesNotExist:
         # 신규 고객
         user = User.objects.create(
             name=name, email_address=email_addr)
-        storage = DjangoORMStorage(
-            User, 'email_address', request.user, 'credential')
+        storage = DjangoORMStorage(User, 'id', user, 'credential')
         storage.put(creds)
+        # jwt 발급
+        token = jwt.encode({'id': user.id},
+                           JWT_SECRET, algorithm='HS256')
+        return JsonResponse({
+            'token': token,
+            'user_name': name,
+            'user_email_address': email_addr
+        }, status=200)

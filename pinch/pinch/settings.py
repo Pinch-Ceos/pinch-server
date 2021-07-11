@@ -110,7 +110,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTH_USER_MODEL = 'api.User'
+# AUTH_USER_MODEL = 'api.User'
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
@@ -136,5 +136,7 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-GOOGLE_OAUTH2_CLIENT_ID = secrets['GOOGLE_OAUTH2_CLIENT_ID']
-GOOGLE_OAUTH2_CLIENT_SECRET = secrets['GOOGLE_OAUTH2_CLIENT_SECRET']
+JWT_SECRET = secrets['JWT_SECRET']
+
+GOOGLE_OAUTH2_CLIENT_SECRETS_JSON = os.path.join(
+    BASE_DIR, 'client_secrets.json')

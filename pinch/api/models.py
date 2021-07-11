@@ -25,7 +25,7 @@ class User(Base):
     email_address = models.CharField(max_length=254, unique=True)
     # num_of_subs = models.IntegerField(default=0)
     # num_of_bookmarks = models.IntegerField(default=0)
-    last_login_time = models.DateTimeField()
+    last_email_time = models.DateTimeField(null=True)
     # TO_DO : 프로필 사진
     # TO_DO : 사용자 access_token, refresh_token 저장
     credential = CredentialsField()
