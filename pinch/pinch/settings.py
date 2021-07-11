@@ -36,7 +36,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'api',
-    'auth',
+    'google_auth',
     'rest_framework',
     'corsheaders',
     'django.contrib.admin',
