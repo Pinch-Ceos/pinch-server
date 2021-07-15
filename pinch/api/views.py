@@ -159,6 +159,7 @@ def email_response(messages, service):
                 'snippet': snippet,
                 # 'body': str(data)
             }
+            # bookmark id 추가
             email_list.append(d)
         except:
             pass
@@ -204,11 +205,36 @@ def email_bookmark(request):
     return JsonResponse(email_list, status=200, safe=False)
 
 
-class SubscriptionViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet, mixins.ListModelMixin):
+class SubscriptionViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     serializer_class = SubscriptionSerializer
     queryset = Subscription.objects.all()
 
+    @ login_decorator
+    def list(self, request, *args, **kwargs):
+        request.data.update({"user": str(request.user.id)})
+        return super().list(self, request, *args, **kwargs)
 
-class BookmarkViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
+    @ login_decorator
+    def create(self, request, *args, **kwargs):
+        request.data.update({"user": str(request.user.id)})
+        return super().create(self, request, *args, **kwargs)
+
+    @ login_decorator
+    def destroy(self, request, *args, **kwargs):
+        request.data.update({"user": str(request.user.id)})
+        return super().destroy(self, request, *args, **kwargs)
+
+
+class BookmarkViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     serializer_class = BookmarkSerializer
     queryset = Bookmark.objects.all()
+
+    @ login_decorator
+    def create(self, request, *args, **kwargs):
+        request.data.update({"user": str(request.user.id)})
+        return super().create(self, request, *args, **kwargs)
+
+    @ login_decorator
+    def destroy(self, request, *args, **kwargs):
+        request.data.update({"user": str(request.user.id)})
+        return super().destroy(self, request, *args, **kwargs)
