@@ -114,27 +114,13 @@ def attach_label(user_id):
     return service
 
 
-@ login_decorator
-def email(request):
-    service = attach_label(request.user.id)
-    subscription = request.GET.get("subscription")
-    print(subscription)
-    # subscription이 구독한 곳인지 확인하는 로직 추가
-
+def email_response(messages, service):
     email_list = list()
 
-    if not subscription:
-        result = service.users().messages().list(
-            userId='me', q='label:pinch').execute()
-    else:
-        result = service.users().messages().list(
-            userId='me', q="label:pinch from:{}".format(subscription)).execute()
-
-    messages = result.get('messages')
     if messages == None:
-        return JsonResponse(email_list, status=200, safe=False)
+        return email_list
 
-    progress = tqdm(messages, total=len(result), desc='뉴스레터를 가져오기')
+    progress = tqdm(messages, total=len(messages), desc='뉴스레터를 가져오기')
 
     for msg in progress:
         try:
@@ -165,6 +151,7 @@ def email(request):
             data = data.replace("-", "+").replace("_", "/")
             data = base64.b64decode(data)
             d = {
+                'id': msg['id'],
                 'name': name,
                 'email_address': email_address,
                 'datetime': date,
@@ -175,6 +162,44 @@ def email(request):
             email_list.append(d)
         except:
             pass
+
+    return email_list
+
+
+@ login_decorator
+def email_list(request):
+    service = attach_label(request.user.id)
+    subscription = request.GET.get("subscription")
+
+    # subscription이 구독한 곳인지 확인하는 로직 추가
+    if not subscription:
+        result = service.users().messages().list(
+            userId='me', q='label:pinch').execute()
+    else:
+        result = service.users().messages().list(
+            userId='me', q="label:pinch from:{}".format(subscription)).execute()
+
+    messages = result.get('messages')
+    email_list = email_response(messages, service)
+
+    return JsonResponse(email_list, status=200, safe=False)
+
+
+@ login_decorator
+def email_bookmark(request):
+    user = User.objects.get(id=request.user.id)
+    storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
+    creds = storage.get()
+
+    service = build('gmail', 'v1', credentials=creds)
+
+    ids = Bookmark.objects.filter(
+        user=request.user.id).values_list('email_id', flat=True)
+    messages = list()
+    for id in ids:
+        messages.append({'id': id})
+
+    email_list = email_response(messages, service)
 
     return JsonResponse(email_list, status=200, safe=False)
 
