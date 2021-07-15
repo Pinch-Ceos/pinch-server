@@ -73,7 +73,7 @@ class UserSubscription(Base):
 
 class Bookmark(Base):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    email_id = models.IntegerField()
+    email_id = models.CharField(max_length=100)
 
     def __str__(self):
         return '{}->{}'.format(self.user.email_address, self.email_id)
