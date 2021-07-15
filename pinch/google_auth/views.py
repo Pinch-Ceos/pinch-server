@@ -1,4 +1,4 @@
-from api.models import User
+from api.models import User, Credentials
 from google_auth_oauthlib.flow import Flow, InstalledAppFlow
 from googleapiclient.discovery import build
 from django.http import HttpResponse, JsonResponse
@@ -7,17 +7,17 @@ from pinch.settings import JWT_SECRET
 import jwt
 
 # Create your views here.
-"""
+'''
 flow = Flow.from_client_secrets_file(
     'pinch/client_secrets.json',
     scopes=['openid',
             'https://www.googleapis.com/auth/userinfo.email',
             'https://www.googleapis.com/auth/userinfo.profile',
             'https://www.googleapis.com/auth/gmail.readonly',
-            'https://www.googleapis.com/auth/gmail.labels'],
+            'https://www.googleapis.com/auth/gmail.labels',
+            'https://www.googleapis.com/auth/gmail.modify'],
     redirect_uri='http://localhost:3000/redirect')
-"""
-
+'''
 
 '''
     로그인 요청
@@ -45,7 +45,8 @@ def google_callback(request):
                 'https://www.googleapis.com/auth/userinfo.email',
                 'https://www.googleapis.com/auth/userinfo.profile',
                 'https://www.googleapis.com/auth/gmail.readonly',
-                'https://www.googleapis.com/auth/gmail.labels'])
+                'https://www.googleapis.com/auth/gmail.labels',
+                'https://www.googleapis.com/auth/gmail.modify'])
 
     flow.run_local_server()
 
@@ -69,6 +70,8 @@ def google_callback(request):
 
     email_addr = user_document['email']
     name = user_document['name']
+    # name = name.encode('utf8')
+    print(name)
 
     try:
         # 기존 고객
@@ -81,14 +84,24 @@ def google_callback(request):
             'token': token,
             'user_name': name,
             'user_email_address': email_addr
-        }, status=200)
+        }, json_dumps_params={'ensure_ascii': False}, status=200)
 
     except User.DoesNotExist:
         # 신규 고객
+
+        service = build('gmail', 'v1', credentials=creds)
+        result = service.users().labels().create(userId='me', body={
+            'labelListVisibility': 'labelShow',
+            'messageListVisibility': 'show',
+            'name': 'pinch',
+        }).execute()
+        print(result)
+
         user = User.objects.create(
-            name=name, email_address=email_addr)
-        storage = DjangoORMStorage(User, 'id', user.id, 'credential')
+            name=name, email_address=email_addr, label_id=result["id"])
+        storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
         storage.put(creds)
+
         # jwt 발급
         token = jwt.encode({'id': user.id},
                            JWT_SECRET, algorithm='HS256')
@@ -96,4 +109,4 @@ def google_callback(request):
             'token': token,
             'user_name': name,
             'user_email_address': email_addr
-        }, status=200)
+        }, json_dumps_params={'ensure_ascii': False}, status=200)
