@@ -20,5 +20,5 @@ from api import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('google_auth.urls')),
-    path('api/', include('api.urls')),
+    path('', include('api.urls')),
 ]
