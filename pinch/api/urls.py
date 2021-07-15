@@ -5,10 +5,11 @@ from . import views
 app_name = 'api'
 
 router = routers.DefaultRouter()
-router.register(r'subscription', views.SubscriptionViewSet)
-router.register(r'bookmark', views.BookmarkViewSet)
+router.register(r'subscriptions', views.SubscriptionViewSet)
+router.register(r'bookmarks', views.BookmarkViewSet)
 
 urlpatterns = router.urls + [
-    path('email', views.email),
+    path('email', views.email_list),
+    path('email/bookmark', views.email_bookmark),
     path('user/email-senders', views.email_senders),
 ]
