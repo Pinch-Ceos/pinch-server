@@ -27,11 +27,16 @@ class User(Base):
     # num_of_bookmarks = models.IntegerField(default=0)
     last_email_time = models.DateTimeField(null=True)
     # TO_DO : 프로필 사진
-    # TO_DO : 사용자 access_token, refresh_token 저장
-    credential = CredentialsField()
+    label_id = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.email_address
+
+
+class Credentials(Base):
+    id = models.OneToOneField(
+        User, primary_key=True, on_delete=models.CASCADE)
+    credential = CredentialsField()
 
 
 '''
