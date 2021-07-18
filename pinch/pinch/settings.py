@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'api',
     'google_auth',
     'rest_framework',
+    'rest_framework_swagger',
     'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -58,6 +59,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema'}
 
 # CORS
 CORS_ORIGIN_ALLOW_ALL = True
