@@ -91,13 +91,13 @@ def google_callback(request):
     except User.DoesNotExist:
         # 신규 고객
 
-        service = build('gmail', 'v1', credentials=creds)
-        result = service.users().labels().create(userId='me', body={
-            'labelListVisibility': 'labelShow',
-            'messageListVisibility': 'show',
-            'name': 'pinch',
-        }).execute()
-        print(result)
+        # service = build('gmail', 'v1', credentials=creds)
+        # result = service.users().labels().create(userId='me', body={
+        #     'labelListVisibility': 'labelShow',
+        #     'messageListVisibility': 'show',
+        #     'name': 'pinch',
+        # }).execute()
+        # print(result)
 
         user = User.objects.create(
             name=name, email_address=email_addr, label_id=result["id"])

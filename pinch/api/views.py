@@ -78,64 +78,64 @@ def email_senders(request):
     return JsonResponse(email_senders, status=200, safe=False)
 
 
-def attach_label(user_id):
-    user = User.objects.get(id=user_id)
-    storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
-    time = user.last_email_time
-    label_id = user.label_id
-    creds = storage.get()
+# def attach_label(user_id):
+#     user = User.objects.get(id=user_id)
+#     storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
+#     time = user.last_email_time
+#     label_id = user.label_id
+#     creds = storage.get()
 
-    # get list of email_address that user subscribes
-    subscriptions = Subscription.objects.filter(
-        user=user_id).values_list('email_address', flat=True)
-    subscriptions = list(subscriptions)
+#     # get list of email_address that user subscribes
+#     subscriptions = Subscription.objects.filter(
+#         user=user_id).values_list('email_address', flat=True)
+#     subscriptions = list(subscriptions)
 
-    service = build('gmail', 'v1', credentials=creds)
+#     service = build('gmail', 'v1', credentials=creds)
 
-    # new user
-    if not time:
-        result = service.users().messages().list(maxResults=500, userId='me').execute()
-    else:
-        # 여기 테스트 해보기
-        today = datetime.today() + timedelta(1)
-        query = "before: {0} after: {1}".format(
-            today.strftime('%Y/%m/%d'), time.strftime('%Y/%m/%d'))
-        # now DB에 업데이트
-        user.last_email_time = datetime.now()
-        user.save()
+#     # new user
+#     if not time:
+#         result = service.users().messages().list(maxResults=500, userId='me').execute()
+#     else:
+#         # 여기 테스트 해보기
+#         today = datetime.today() + timedelta(1)
+#         query = "before: {0} after: {1}".format(
+#             today.strftime('%Y/%m/%d'), time.strftime('%Y/%m/%d'))
+#         # now DB에 업데이트
+#         user.last_email_time = datetime.now()
+#         user.save()
 
-        # get unfiltered email
-        result = service.users().messages().list(
-            userId='me', q=query).execute()
+#         # get unfiltered email
+#         result = service.users().messages().list(
+#             userId='me', q=query).execute()
 
-    messages = result.get('messages')
-    # 라벨 없을 때 로직 만들기
-    if not messages:
-        return service
-    progress = tqdm(messages, total=len(result), desc='필터링')
-    for msg in progress:
-        try:
-            txt = service.users().messages().get(
-                userId='me', id=msg['id'], format='metadata').execute()
-            headers = txt['payload']['headers']
-            sender = None
-            for d in headers:
-                if d['name'] == 'From':
-                    sender = d['value']
+#     messages = result.get('messages')
+#     # 라벨 없을 때 로직 만들기
+#     if not messages:
+#         return service
+#     progress = tqdm(messages, total=len(result), desc='필터링')
+#     for msg in progress:
+#         try:
+#             txt = service.users().messages().get(
+#                 userId='me', id=msg['id'], format='metadata').execute()
+#             headers = txt['payload']['headers']
+#             sender = None
+#             for d in headers:
+#                 if d['name'] == 'From':
+#                     sender = d['value']
 
-            i = sender.rfind("<")
-            email_address = sender[i+1:len(sender)-1:]
+#             i = sender.rfind("<")
+#             email_address = sender[i+1:len(sender)-1:]
 
-            if email_address in subscriptions:
-                r = service.users().messages().modify(userId='me', id=msg['id'], body={
-                    'addLabelIds': [label_id]
-                }).execute()
-                txt = service.users().messages().get(
-                    userId='me', id=msg['id'], format='metadata').execute()
-        except:
-            pass
+#             if email_address in subscriptions:
+#                 r = service.users().messages().modify(userId='me', id=msg['id'], body={
+#                     'addLabelIds': [label_id]
+#                 }).execute()
+#                 txt = service.users().messages().get(
+#                     userId='me', id=msg['id'], format='metadata').execute()
+#         except:
+#             pass
 
-    return service
+#     return service
 
 
 def email_response(messages, service):
@@ -193,16 +193,33 @@ def email_response(messages, service):
 
 @ login_decorator
 def email_list(request):
-    service = attach_label(request.user.id)
+    user = User.objects.get(id=request.user.id)
+    storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
+    creds = storage.get()
+
+    service = build('gmail', 'v1', credentials=creds)
+
+    # service = attach_label(request.user.id)
     subscription = request.GET.get("subscription")
     search = request.GET.get("search")
 
     # subscription이 구독한 곳인지 확인하는 로직 추
-    q = "label: pinch "
+    # q = "label: pinch "
+    q = ""
     if subscription:
         q += "from:{} ".format(subscription)
+    else:
+        q += "{"
+        subscriptions = Subscription.objects.filter(
+            user=user).values_list('email_address', flat=True)
+        for sub in subscriptions:
+            q += "from:{} ".format(sub)
+        q += "}"
+
     if search:
         q += "subject:({}) ".format(search)
+
+    print(q)
 
     result = service.users().messages().list(
         userId='me', q=q).execute()
@@ -269,10 +286,10 @@ class BookmarkViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins
 
     @ login_decorator_viewset
     def create(self, request, *args, **kwargs):
-        self.request.data.update({"user": [request.user.id]})
+        self.request.data.update({"user": request.user.id})
         return super().create(request, *args, **kwargs)
 
     @ login_decorator_viewset
     def destroy(self, request, *args, **kwargs):
-        self.request.data.update({"user": [request.user.id]})
+        self.request.data.update({"user": request.user.id})
         return super().destroy(request, *args, **kwargs)
