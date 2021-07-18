@@ -11,6 +11,8 @@ from tqdm import tqdm
 from rest_framework import status
 from rest_framework.response import Response
 from django.views import View
+from bs4 import BeautifulSoup
+from django.core.paginator import Paginator
 
 
 @login_decorator
@@ -63,7 +65,7 @@ def email_senders(request):
 
     for msg in messages:
         try:
-            txt = None
+            txt = sender = None
             txt = service.users().messages().get(
                 userId='me', id=msg['id'], format='metadata').execute()
             headers = txt['payload']['headers']
@@ -157,13 +159,15 @@ def email_response(messages, service):
 
     for msg in progress:
         try:
-            txt = None
+            txt = sender = subject = date = image = None
             txt = service.users().messages().get(
                 userId='me', id=msg['id']).execute()
 
             payload = txt['payload']
             headers = payload['headers']
             snippet = txt['snippet']
+            labels = txt["labelIds"]
+            print(labels)
 
             # parse the sender
             for d in headers:
@@ -181,9 +185,18 @@ def email_response(messages, service):
             email_address = sender[i+1:len(sender)-1:]
 
             # data 로직 잘 살펴보기
+            # TO-DO 다른 데이터 있는것도 살펴보기
             data = payload['body']['data']
             data = data.replace("-", "+").replace("_", "/")
             data = base64.b64decode(data)
+            bs = BeautifulSoup(data, "html.parser")
+            images = bs.find_all('img')
+
+            for img in images:
+                if img.has_attr('src') and img['src'].endswith('.png'):
+                    image = img['src']
+                    break
+
             d = {
                 'id': msg['id'],
                 'name': name,
@@ -191,7 +204,8 @@ def email_response(messages, service):
                 'datetime': date,
                 'subject': subject,
                 'snippet': snippet,
-                'image': "https://img.stibee.com/10535_1605149766.png",
+                'image': image,
+                'read': "UNREAD" not in labels,
             }
 
             bookmark_id = msg.get('bookmark_id', None)
@@ -199,8 +213,8 @@ def email_response(messages, service):
                 d['bookmark_id'] = bookmark_id
 
             email_list.append(d)
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
     return email_list
 
@@ -231,7 +245,7 @@ def email_list(request):
         q += "}"
 
     if search:
-        q += "subject:({}) ".format(search)
+        q += '"{}"'.format(search)
 
     print(q)
 
@@ -239,7 +253,15 @@ def email_list(request):
         userId='me', q=q).execute()
 
     messages = result.get('messages')
-    email_list = email_response(messages, service)
+    email_list = []
+
+    if messages:
+        # pagination logic
+        # TO-DO : 100개 이상이면 추가로 불러오기
+        paginator = Paginator(messages, 12)
+        page = request.GET.get('page')
+        messages = paginator.page(page)
+        email_list = email_response(messages, service)
 
     return JsonResponse(email_list, status=200, safe=False)
 
@@ -264,8 +286,14 @@ def email_bookmark(request):
                 'id': id[1],
             }
         )
+    email_list = []
+    if messages:
+        # pagination logic
+        paginator = Paginator(messages, 12)
+        page = request.GET.get('page')
+        messages = paginator.page(page)
 
-    email_list = email_response(messages, service)
+        email_list = email_response(messages, service)
 
     return JsonResponse(email_list, status=200, safe=False)
 
@@ -282,6 +310,8 @@ def email_detail(request):
 
     txt = service.users().messages().get(
         userId='me', id=email_id).execute()
+
+    # read 되게 바꾸는 로직
 
     # data 로직 잘 살펴보기
     data = txt['payload']['body']['data']
