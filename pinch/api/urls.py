@@ -11,6 +11,7 @@ router.register(r'bookmarks', views.BookmarkViewSet)
 urlpatterns = router.urls + [
     path('email', views.email_list),
     path('email/bookmark', views.email_bookmark),
+    path('email/detail', views.email_detail),
     path('user/email-senders', views.email_senders),
     path('user', views.user_info),
 ]

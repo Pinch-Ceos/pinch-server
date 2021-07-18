@@ -270,6 +270,27 @@ def email_bookmark(request):
     return JsonResponse(email_list, status=200, safe=False)
 
 
+@ login_decorator
+def email_detail(request):
+    user = User.objects.get(id=request.user.id)
+    storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
+    creds = storage.get()
+
+    service = build('gmail', 'v1', credentials=creds)
+
+    email_id = request.GET.get("email_id")
+
+    txt = service.users().messages().get(
+        userId='me', id=email_id).execute()
+
+    # data 로직 잘 살펴보기
+    data = txt['payload']['body']['data']
+    data = data.replace("-", "+").replace("_", "/")
+    data = base64.b64decode(data)
+
+    return HttpResponse(data)
+
+
 class SubscriptionViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     serializer_class = SubscriptionSerializer
     queryset = Subscription.objects.all()
