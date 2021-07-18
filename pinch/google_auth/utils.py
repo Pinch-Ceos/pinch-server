@@ -39,8 +39,7 @@ def login_decorator(func):
 def login_decorator_viewset(func):
 
     def wrapper(self, request, *args, **kwargs):
-        print(self.request.data)
-        print(request.data)
+
         # 프론트에서 토큰 정보 제공하지 않았을 경우 -> 401 Unauthorized
 
         if "Authorization" not in request.headers:
