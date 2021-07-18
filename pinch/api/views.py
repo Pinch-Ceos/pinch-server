@@ -10,28 +10,34 @@ import base64
 from tqdm import tqdm
 from rest_framework import status
 from rest_framework.response import Response
+from django.views import View
 
 
 @login_decorator
 def user_info(request):
     user = User.objects.get(id=request.user.id)
-    sub_list = list()
 
-    subscriptions = Subscription.objects.filter(user=user)
-    subscription_num = subscriptions.count()
-    bookmark_num = Bookmark.objects.filter(user=user).count()
-    for sub in subscriptions:
-        dic = d = {'id': sub.id, 'name': sub.name,
-                   'email_address': sub.email_address}
-        sub_list.append(dic)
+    if request.method == 'GET':
+        sub_list = list()
+        subscriptions = Subscription.objects.filter(user=user)
+        subscription_num = subscriptions.count()
+        bookmark_num = Bookmark.objects.filter(user=user).count()
+        for sub in subscriptions:
+            dic = d = {'id': sub.id, 'name': sub.name,
+                       'email_address': sub.email_address}
+            sub_list.append(dic)
 
-    return JsonResponse({
-        'user_name': user.name,
-        'user_email_address': user.email_address,
-        'subscriptions': sub_list,
-        'subscription_num': subscription_num,
-        'bookmark_num': bookmark_num
-    }, json_dumps_params={'ensure_ascii': False}, status=200)
+        return JsonResponse({
+            'user_name': user.name,
+            'user_email_address': user.email_address,
+            'subscriptions': sub_list,
+            'subscription_num': subscription_num,
+            'bookmark_num': bookmark_num
+        }, json_dumps_params={'ensure_ascii': False}, status=200)
+
+    if request.method == 'DELETE':
+        # 유저 삭제 구현하기
+        pass
 
 
 @login_decorator
@@ -39,7 +45,6 @@ def email_senders(request):
     user = User.objects.get(id=request.user.id)
     storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
     creds = storage.get()
-    print(creds)
     service = build('gmail', 'v1', credentials=creds)
 
     today = datetime.today() + timedelta(1)
@@ -57,24 +62,28 @@ def email_senders(request):
         return JsonResponse(email_senders, status=200, safe=False)
 
     for msg in messages:
-        txt = service.users().messages().get(
-            userId='me', id=msg['id'], format='metadata').execute()
-        headers = txt['payload']['headers']
+        try:
+            txt = None
+            txt = service.users().messages().get(
+                userId='me', id=msg['id'], format='metadata').execute()
+            headers = txt['payload']['headers']
 
-        # parse the sender
-        for d in headers:
-            if d['name'] == 'From':
-                sender = d['value']
+            # parse the sender
+            for d in headers:
+                if d['name'] == 'From':
+                    sender = d['value']
 
-        i = sender.rfind("<")
-        name = sender[:i-1:]
-        name = name.replace('"', '')
-        name = name.replace("\\", '')
-        email_address = sender[i+1:len(sender)-1:]
-        # save the sender info in dic
-        d = {'name': name, 'email_address': email_address}
-        if d not in email_senders:
-            email_senders.append(d)
+            i = sender.rfind("<")
+            name = sender[:i-1:]
+            name = name.replace('"', '')
+            name = name.replace("\\", '')
+            email_address = sender[i+1:len(sender)-1:]
+            # save the sender info in dic
+            d = {'name': name, 'email_address': email_address}
+            if d not in email_senders:
+                email_senders.append(d)
+        except:
+            pass
     return JsonResponse(email_senders, status=200, safe=False)
 
 
@@ -148,6 +157,7 @@ def email_response(messages, service):
 
     for msg in progress:
         try:
+            txt = None
             txt = service.users().messages().get(
                 userId='me', id=msg['id']).execute()
 
@@ -183,7 +193,11 @@ def email_response(messages, service):
                 'snippet': snippet,
                 'image': "https://img.stibee.com/10535_1605149766.png",
             }
-            # bookmark id 추가
+
+            bookmark_id = msg.get('bookmark_id', None)
+            if bookmark_id:
+                d['bookmark_id'] = bookmark_id
+
             email_list.append(d)
         except:
             pass
@@ -239,17 +253,24 @@ def email_bookmark(request):
     service = build('gmail', 'v1', credentials=creds)
 
     ids = Bookmark.objects.filter(
-        user=request.user.id).values_list('email_id', flat=True)
+        user=request.user.id).values_list('id', 'email_id')
+    print(ids)
+
     messages = list()
     for id in ids:
-        messages.append({'id': id})
+        messages.append(
+            {
+                'bookmark_id': id[0],
+                'id': id[1],
+            }
+        )
 
     email_list = email_response(messages, service)
 
     return JsonResponse(email_list, status=200, safe=False)
 
 
-class SubscriptionViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
+class SubscriptionViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     serializer_class = SubscriptionSerializer
     queryset = Subscription.objects.all()
 
@@ -276,8 +297,11 @@ class SubscriptionViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, mi
 
     @ login_decorator_viewset
     def destroy(self, request, *args, **kwargs):
-        self.request.data.update({"user": [request.user.id]})
-        return super().destroy(request, *args, **kwargs)
+        subscription = self.get_object()
+        subscription.user.remove(request.user.id)
+        return JsonResponse({
+            'message': "deleted",
+        }, json_dumps_params={'ensure_ascii': False}, status=204)
 
 
 class BookmarkViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
