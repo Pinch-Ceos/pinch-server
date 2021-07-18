@@ -1,4 +1,4 @@
-from google_auth.utils import login_decorator
+from google_auth.utils import login_decorator, login_decorator_viewset
 from .models import Subscription, User, Bookmark, Credentials
 from oauth2client.contrib.django_util.storage import DjangoORMStorage
 from googleapiclient.discovery import build
@@ -8,6 +8,30 @@ from rest_framework import viewsets, mixins
 from .serializers import SubscriptionSerializer, BookmarkSerializer
 import base64
 from tqdm import tqdm
+from rest_framework import status
+from rest_framework.response import Response
+
+
+@login_decorator
+def user_info(request):
+    user = User.objects.get(id=request.user.id)
+    sub_list = list()
+
+    subscriptions = Subscription.objects.filter(user=user)
+    subscription_num = subscriptions.count()
+    bookmark_num = Bookmark.objects.filter(user=user).count()
+    for sub in subscriptions:
+        dic = d = {'id': sub.id, 'name': sub.name,
+                   'email_address': sub.email_address}
+        sub_list.append(dic)
+
+    return JsonResponse({
+        'user_name': user.name,
+        'user_email_address': user.email_address,
+        'subscriptions': sub_list,
+        'subscription_num': subscription_num,
+        'bookmark_num': bookmark_num
+    }, json_dumps_params={'ensure_ascii': False}, status=200)
 
 
 @login_decorator
@@ -157,7 +181,7 @@ def email_response(messages, service):
                 'datetime': date,
                 'subject': subject,
                 'snippet': snippet,
-                # 'body': str(data)
+                'image': "https://img.stibee.com/10535_1605149766.png",
             }
             # bookmark id 추가
             email_list.append(d)
@@ -171,14 +195,17 @@ def email_response(messages, service):
 def email_list(request):
     service = attach_label(request.user.id)
     subscription = request.GET.get("subscription")
+    search = request.GET.get("search")
 
-    # subscription이 구독한 곳인지 확인하는 로직 추가
-    if not subscription:
-        result = service.users().messages().list(
-            userId='me', q='label:pinch').execute()
-    else:
-        result = service.users().messages().list(
-            userId='me', q="label:pinch from:{}".format(subscription)).execute()
+    # subscription이 구독한 곳인지 확인하는 로직 추
+    q = "label: pinch "
+    if subscription:
+        q += "from:{} ".format(subscription)
+    if search:
+        q += "subject:({}) ".format(search)
+
+    result = service.users().messages().list(
+        userId='me', q=q).execute()
 
     messages = result.get('messages')
     email_list = email_response(messages, service)
@@ -205,36 +232,47 @@ def email_bookmark(request):
     return JsonResponse(email_list, status=200, safe=False)
 
 
-class SubscriptionViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
+class SubscriptionViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     serializer_class = SubscriptionSerializer
     queryset = Subscription.objects.all()
 
-    @ login_decorator
-    def list(self, request, *args, **kwargs):
-        request.data.update({"user": str(request.user.id)})
-        return super().list(self, request, *args, **kwargs)
-
-    @ login_decorator
+    @ login_decorator_viewset
     def create(self, request, *args, **kwargs):
-        request.data.update({"user": str(request.user.id)})
-        return super().create(self, request, *args, **kwargs)
+        for data in request.data:
+            try:
+                data.update({"user": [request.user.id]})
+                serializer = self.get_serializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+            except:
+                pass
 
-    @ login_decorator
+        sub_list = list()
+        subscriptions = Subscription.objects.filter(user=request.user.id)
+        for sub in subscriptions:
+            dic = d = {'id': sub.id, 'name': sub.name,
+                       'email_address': sub.email_address}
+            sub_list.append(dic)
+        return JsonResponse({
+            'subscriptions': sub_list,
+        }, json_dumps_params={'ensure_ascii': False}, status=201)
+
+    @ login_decorator_viewset
     def destroy(self, request, *args, **kwargs):
-        request.data.update({"user": str(request.user.id)})
-        return super().destroy(self, request, *args, **kwargs)
+        self.request.data.update({"user": [request.user.id]})
+        return super().destroy(request, *args, **kwargs)
 
 
-class BookmarkViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
+class BookmarkViewSet(mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     serializer_class = BookmarkSerializer
     queryset = Bookmark.objects.all()
 
-    @ login_decorator
+    @ login_decorator_viewset
     def create(self, request, *args, **kwargs):
-        request.data.update({"user": str(request.user.id)})
-        return super().create(self, request, *args, **kwargs)
+        self.request.data.update({"user": [request.user.id]})
+        return super().create(request, *args, **kwargs)
 
-    @ login_decorator
+    @ login_decorator_viewset
     def destroy(self, request, *args, **kwargs):
-        request.data.update({"user": str(request.user.id)})
-        return super().destroy(self, request, *args, **kwargs)
+        self.request.data.update({"user": [request.user.id]})
+        return super().destroy(request, *args, **kwargs)
