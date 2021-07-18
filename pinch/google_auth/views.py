@@ -1,4 +1,4 @@
-from api.models import User, Credentials
+from api.models import User, Credentials, Subscription, Bookmark
 from google_auth_oauthlib.flow import Flow, InstalledAppFlow
 from googleapiclient.discovery import build
 from django.http import HttpResponse, JsonResponse
@@ -7,17 +7,17 @@ from pinch.settings import JWT_SECRET
 import jwt
 
 # Create your views here.
-'''
-flow = Flow.from_client_secrets_file(
-    'pinch/client_secrets.json',
-    scopes=['openid',
-            'https://www.googleapis.com/auth/userinfo.email',
-            'https://www.googleapis.com/auth/userinfo.profile',
-            'https://www.googleapis.com/auth/gmail.readonly',
-            'https://www.googleapis.com/auth/gmail.labels',
-            'https://www.googleapis.com/auth/gmail.modify'],
-    redirect_uri='http://localhost:3000/redirect')
-'''
+
+# flow = Flow.from_client_secrets_file(
+#     'pinch/client_secrets.json',
+#     scopes=['openid',
+#             'https://www.googleapis.com/auth/userinfo.email',
+#             'https://www.googleapis.com/auth/userinfo.profile',
+#             'https://www.googleapis.com/auth/gmail.readonly',
+#             'https://www.googleapis.com/auth/gmail.labels',
+#             'https://www.googleapis.com/auth/gmail.modify'],
+#     redirect_uri='http://localhost:3000/redirect')
+
 
 '''
     로그인 요청
@@ -50,28 +50,18 @@ def google_callback(request):
 
     flow.run_local_server()
 
-    # code = request.GET.get('code')
+    # code = request.POST.get('code')
     # print("hi", code)
     # flow.fetch_token(code=code)
 
     creds = flow.credentials
 
-    '''
-    service = build('gmail', 'v1', credentials=creds)
-    result = service.users().messages().list(maxResults=5, userId='me').execute()
-    messages = result.get('messages')
-    print(messages)
-    '''
-
     # 인증 정보를 통해, 사용자 정보를 구글에 요청함
     users_service = build('oauth2', 'v2', credentials=creds)
     user_document = users_service.userinfo().get().execute()
-    print(user_document)
 
     email_addr = user_document['email']
     name = user_document['name']
-    # name = name.encode('utf8')
-    print(name)
 
     try:
         # 기존 고객
@@ -79,11 +69,23 @@ def google_callback(request):
         # jwt 발급
         token = jwt.encode({'id': user.id},
                            JWT_SECRET, algorithm='HS256')
+        sub_list = list()
+        subscriptions = Subscription.objects.filter(user=user)
+        subscription_num = subscriptions.count()
+        bookmark_num = Bookmark.objects.filter(user=user).count()
+
+        for sub in subscriptions:
+            dic = d = {'id': sub.id, 'name': sub.name,
+                       'email_address': sub.email_address}
+            sub_list.append(dic)
+
         return JsonResponse({
-            'id': user.id,
             'token': token,
             'user_name': name,
-            'user_email_address': email_addr
+            'user_email_address': email_addr,
+            'subscriptions': sub_list,
+            'subscription_num': subscription_num,
+            'bookmark_num': bookmark_num
         }, json_dumps_params={'ensure_ascii': False}, status=200)
 
     except User.DoesNotExist:
