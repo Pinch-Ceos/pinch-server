@@ -34,12 +34,15 @@ def user_info(request):
             'user_email_address': user.email_address,
             'subscriptions': sub_list,
             'subscription_num': subscription_num,
-            'bookmark_num': bookmark_num
+            'bookmark_num': bookmark_num,
+            'read_num': user.read_num,
         }, json_dumps_params={'ensure_ascii': False}, status=200)
 
     if request.method == 'DELETE':
-        # 유저 삭제 구현하기
-        pass
+        User.objects.get(id=request.user.id).delete()
+        return JsonResponse({
+            'message': "deleted",
+        }, json_dumps_params={'ensure_ascii': False}, status=204)
 
 
 @login_decorator
@@ -231,6 +234,8 @@ def email_list(request):
     subscription = request.GET.get("subscription")
     search = request.GET.get("search")
 
+    email_list = []
+
     # subscription이 구독한 곳인지 확인하는 로직 추
     # q = "label: pinch "
     q = ""
@@ -240,6 +245,9 @@ def email_list(request):
         q += "{"
         subscriptions = Subscription.objects.filter(
             user=user).values_list('email_address', flat=True)
+        if not subscriptions:
+            return JsonResponse(email_list, status=200, safe=False)
+
         for sub in subscriptions:
             q += "from:{} ".format(sub)
         q += "}"
@@ -248,12 +256,10 @@ def email_list(request):
         q += '"{}"'.format(search)
 
     print(q)
-
     result = service.users().messages().list(
         userId='me', q=q).execute()
 
     messages = result.get('messages')
-    email_list = []
 
     if messages:
         # pagination logic
@@ -311,12 +317,19 @@ def email_detail(request):
     txt = service.users().messages().get(
         userId='me', id=email_id).execute()
 
-    # read 되게 바꾸는 로직
+    labels = txt["labelIds"]
 
     # data 로직 잘 살펴보기
     data = txt['payload']['body']['data']
     data = data.replace("-", "+").replace("_", "/")
     data = base64.b64decode(data)
+
+    if "UNREAD" in labels:
+        # read 되게 바꾸는 로직
+        service.users().messages().modify(
+            userId='me', id=email_id, body={'removeLabelIds': ['UNREAD']}).execute()
+        user.read_num += 1
+        user.save()
 
     return HttpResponse(data)
 

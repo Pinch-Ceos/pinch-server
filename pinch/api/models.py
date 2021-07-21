@@ -25,9 +25,10 @@ class User(Base):
     email_address = models.CharField(max_length=254, unique=True)
     # num_of_subs = models.IntegerField(default=0)
     # num_of_bookmarks = models.IntegerField(default=0)
-    last_email_time = models.DateTimeField(null=True)
+    # last_email_time = models.DateTimeField(null=True)
     # TO_DO : 프로필 사진
     # label_id = models.CharField(max_length=100, unique=True)
+    read_num = models.IntegerField(default=0)
 
     def __str__(self):
         return self.email_address
