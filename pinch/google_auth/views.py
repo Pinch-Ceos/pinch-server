@@ -66,6 +66,15 @@ def google_callback(request):
     try:
         # 기존 고객
         user = User.objects.get(email_address=email_addr)
+
+        # creds 정보 업데이트
+        storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
+        storage.put(creds)
+
+        # 이름 정보 업데이트
+        user.name = name
+        user.save()
+
         # jwt 발급
         token = jwt.encode({'id': user.id},
                            JWT_SECRET, algorithm='HS256')
@@ -85,7 +94,8 @@ def google_callback(request):
             'user_email_address': email_addr,
             'subscriptions': sub_list,
             'subscription_num': subscription_num,
-            'bookmark_num': bookmark_num
+            'bookmark_num': bookmark_num,
+            'read_num': user.read_num,
         }, json_dumps_params={'ensure_ascii': False}, status=200)
 
     except User.DoesNotExist:
@@ -100,7 +110,7 @@ def google_callback(request):
         # print(result)
 
         user = User.objects.create(
-            name=name, email_address=email_addr, label_id=result["id"])
+            name=name, email_address=email_addr)
         storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
         storage.put(creds)
 
