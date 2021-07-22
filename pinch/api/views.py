@@ -8,9 +8,6 @@ from rest_framework import viewsets, mixins
 from .serializers import SubscriptionSerializer, BookmarkSerializer
 import base64
 from tqdm import tqdm
-from rest_framework import status
-from rest_framework.response import Response
-from django.views import View
 from bs4 import BeautifulSoup
 from django.core.paginator import Paginator
 
@@ -90,66 +87,6 @@ def email_senders(request):
         except:
             pass
     return JsonResponse(email_senders, status=200, safe=False)
-
-
-# def attach_label(user_id):
-#     user = User.objects.get(id=user_id)
-#     storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
-#     time = user.last_email_time
-#     label_id = user.label_id
-#     creds = storage.get()
-
-#     # get list of email_address that user subscribes
-#     subscriptions = Subscription.objects.filter(
-#         user=user_id).values_list('email_address', flat=True)
-#     subscriptions = list(subscriptions)
-
-#     service = build('gmail', 'v1', credentials=creds)
-
-#     # new user
-#     if not time:
-#         result = service.users().messages().list(maxResults=500, userId='me').execute()
-#     else:
-#         # 여기 테스트 해보기
-#         today = datetime.today() + timedelta(1)
-#         query = "before: {0} after: {1}".format(
-#             today.strftime('%Y/%m/%d'), time.strftime('%Y/%m/%d'))
-#         # now DB에 업데이트
-#         user.last_email_time = datetime.now()
-#         user.save()
-
-#         # get unfiltered email
-#         result = service.users().messages().list(
-#             userId='me', q=query).execute()
-
-#     messages = result.get('messages')
-#     # 라벨 없을 때 로직 만들기
-#     if not messages:
-#         return service
-#     progress = tqdm(messages, total=len(result), desc='필터링')
-#     for msg in progress:
-#         try:
-#             txt = service.users().messages().get(
-#                 userId='me', id=msg['id'], format='metadata').execute()
-#             headers = txt['payload']['headers']
-#             sender = None
-#             for d in headers:
-#                 if d['name'] == 'From':
-#                     sender = d['value']
-
-#             i = sender.rfind("<")
-#             email_address = sender[i+1:len(sender)-1:]
-
-#             if email_address in subscriptions:
-#                 r = service.users().messages().modify(userId='me', id=msg['id'], body={
-#                     'addLabelIds': [label_id]
-#                 }).execute()
-#                 txt = service.users().messages().get(
-#                     userId='me', id=msg['id'], format='metadata').execute()
-#         except:
-#             pass
-
-#     return service
 
 
 def email_response(messages, service):
@@ -237,7 +174,6 @@ def email_list(request):
     email_list = []
 
     # subscription이 구독한 곳인지 확인하는 로직 추
-    # q = "label: pinch "
     q = ""
     if subscription:
         q += "from:{} ".format(subscription)
@@ -282,7 +218,6 @@ def email_bookmark(request):
 
     ids = Bookmark.objects.filter(
         user=request.user.id).values_list('id', 'email_id')
-    print(ids)
 
     messages = list()
     for id in ids:

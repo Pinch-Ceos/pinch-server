@@ -8,15 +8,15 @@ import jwt
 
 # Create your views here.
 
-# flow = Flow.from_client_secrets_file(
-#     'pinch/client_secrets.json',
-#     scopes=['openid',
-#             'https://www.googleapis.com/auth/userinfo.email',
-#             'https://www.googleapis.com/auth/userinfo.profile',
-#             'https://www.googleapis.com/auth/gmail.readonly',
-#             'https://www.googleapis.com/auth/gmail.labels',
-#             'https://www.googleapis.com/auth/gmail.modify'],
-#     redirect_uri='http://localhost:3000/redirect')
+flow = Flow.from_client_secrets_file(
+    'pinch/client_secrets.json',
+    scopes=['openid',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/gmail.readonly',
+            'https://www.googleapis.com/auth/gmail.labels',
+            'https://www.googleapis.com/auth/gmail.modify'],
+    redirect_uri='http://localhost:3000/redirect')
 
 
 '''
@@ -39,20 +39,19 @@ def google_login(request):
 def google_callback(request):
 
     # 테스트 용 코드
-    flow = InstalledAppFlow.from_client_secrets_file(
-        'pinch/client_secrets_.json',
-        scopes=['openid',
-                'https://www.googleapis.com/auth/userinfo.email',
-                'https://www.googleapis.com/auth/userinfo.profile',
-                'https://www.googleapis.com/auth/gmail.readonly',
-                'https://www.googleapis.com/auth/gmail.labels',
-                'https://www.googleapis.com/auth/gmail.modify'])
+    # flow = InstalledAppFlow.from_client_secrets_file(
+    #     'pinch/client_secrets_.json',
+    #     scopes=['openid',
+    #             'https://www.googleapis.com/auth/userinfo.email',
+    #             'https://www.googleapis.com/auth/userinfo.profile',
+    #             'https://www.googleapis.com/auth/gmail.readonly',
+    #             'https://www.googleapis.com/auth/gmail.labels',
+    #             'https://www.googleapis.com/auth/gmail.modify'])
 
-    flow.run_local_server()
+    # flow.run_local_server()
 
-    # code = request.POST.get('code')
-    # print("hi", code)
-    # flow.fetch_token(code=code)
+    code = request.POST.get('code')
+    flow.fetch_token(code=code)
 
     creds = flow.credentials
 
@@ -99,15 +98,6 @@ def google_callback(request):
         }, json_dumps_params={'ensure_ascii': False}, status=200)
 
     except User.DoesNotExist:
-        # 신규 고객
-
-        # service = build('gmail', 'v1', credentials=creds)
-        # result = service.users().labels().create(userId='me', body={
-        #     'labelListVisibility': 'labelShow',
-        #     'messageListVisibility': 'show',
-        #     'name': 'pinch',
-        # }).execute()
-        # print(result)
 
         user = User.objects.create(
             name=name, email_address=email_addr)
