@@ -51,6 +51,11 @@ def email_senders(request):
     creds = storage.get()
     service = build('gmail', 'v1', credentials=creds)
 
+    # get list of email_address that user subscribes
+    subscriptions = Subscription.objects.filter(
+        user=request.user.id).values_list('email_address', flat=True)
+    subscriptions = list(subscriptions)
+
     today = datetime.today() + timedelta(1)
     lastweek = today - timedelta(9)
     query = "before: {0} after: {1}".format(
@@ -84,7 +89,7 @@ def email_senders(request):
             email_address = sender[i+1:len(sender)-1:]
             # save the sender info in dic
             d = {'name': name, 'email_address': email_address}
-            if d not in email_senders:
+            if (email_address not in subscriptions) and (d not in email_senders):
                 email_senders.append(d)
         except:
             pass
