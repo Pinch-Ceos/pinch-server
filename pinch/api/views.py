@@ -1,4 +1,4 @@
-from google_auth.utils import login_decorator, login_decorator_viewset
+from google_auth.utils import login_decorator, user_login_decorator, login_decorator_viewset
 from .models import Subscription, User, Bookmark, Credentials
 from oauth2client.contrib.django_util.storage import DjangoORMStorage
 from googleapiclient.discovery import build
@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from django.core.paginator import Paginator
 
 
-@login_decorator
+@user_login_decorator
 def user_info(request):
     user = User.objects.get(id=request.user.id)
 
@@ -147,6 +147,8 @@ def email_response(messages, service):
                 'image': image,
                 'read': "UNREAD" not in labels,
             }
+
+            # TO-DO : 북마크 아이디 추가
 
             bookmark_id = msg.get('bookmark_id', None)
             if bookmark_id:
