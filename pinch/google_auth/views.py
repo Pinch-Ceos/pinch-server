@@ -5,7 +5,8 @@ from django.http import HttpResponse, JsonResponse
 from oauth2client.contrib.django_util.storage import DjangoORMStorage
 from pinch.settings import JWT_SECRET
 import jwt
-
+from django.views.decorators.csrf import csrf_exempt
+import json
 # Create your views here.
 
 flow = Flow.from_client_secrets_file(
@@ -35,7 +36,7 @@ def google_login(request):
 로그인 후 받은 인가코드를 통해 oauth 인증
 '''
 
-
+@csrf_exempt
 def google_callback(request):
 
     # 테스트 용 코드
@@ -50,7 +51,9 @@ def google_callback(request):
 
     # flow.run_local_server()
 
-    code = request.POST.get('code')
+    code = json.loads(request.body)['code']
+    print(request.body)
+    print("code", code)
     flow.fetch_token(code=code)
 
     creds = flow.credentials
