@@ -10,8 +10,10 @@ import base64
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from django.core.paginator import Paginator
+from django.views.decorators.csrf import csrf_exempt
 
 
+@csrf_exempt
 @user_login_decorator
 def user_info(request):
     user = User.objects.get(id=request.user.id)
@@ -89,7 +91,7 @@ def email_senders(request):
     return JsonResponse(email_senders, status=200, safe=False)
 
 
-def email_response(messages, service):
+def email_response(messages, service, bookmarks):
     email_list = list()
 
     if messages == None:
@@ -107,7 +109,6 @@ def email_response(messages, service):
             headers = payload['headers']
             snippet = txt['snippet']
             labels = txt["labelIds"]
-            print(labels)
 
             # parse the sender
             for d in headers:
@@ -137,6 +138,10 @@ def email_response(messages, service):
                     image = img['src']
                     break
 
+            bookmark_id = None
+            if msg['id'] in bookmarks:
+                bookmark_id = bookmarks[msg['id']]
+
             d = {
                 'id': msg['id'],
                 'name': name,
@@ -146,13 +151,8 @@ def email_response(messages, service):
                 'snippet': snippet,
                 'image': image,
                 'read': "UNREAD" not in labels,
+                'bookmark_id': bookmark_id
             }
-
-            # TO-DO : 북마크 아이디 추가
-
-            bookmark_id = msg.get('bookmark_id', None)
-            if bookmark_id:
-                d['bookmark_id'] = bookmark_id
 
             email_list.append(d)
         except Exception as e:
@@ -169,15 +169,21 @@ def email_list(request):
 
     service = build('gmail', 'v1', credentials=creds)
 
-    # service = attach_label(request.user.id)
-    subscription = request.GET.get("subscription")
+    subscription = request.GET.get("subscription", None)
     search = request.GET.get("search")
 
     email_list = []
 
-    # subscription이 구독한 곳인지 확인하는 로직 추
     q = ""
     if subscription:
+        # get list of email_address that user subscribes
+        subscriptions = Subscription.objects.filter(
+            user=request.user.id).values_list('email_address', flat=True)
+        subscriptions = list(subscriptions)
+        if subscription not in subscriptions:
+            JsonResponse({'message': "wrong subscription name"},
+                         status=404, safe=False)
+
         q += "from:{} ".format(subscription)
     else:
         q += "{"
@@ -193,7 +199,6 @@ def email_list(request):
     if search:
         q += '"{}"'.format(search)
 
-    print(q)
     result = service.users().messages().list(
         userId='me', q=q).execute()
 
@@ -202,10 +207,14 @@ def email_list(request):
     if messages:
         # pagination logic
         # TO-DO : 100개 이상이면 추가로 불러오기
+        bookmarks = Bookmark.objects.filter(
+            user=request.user.id).values_list('email_id', 'id')
+        bookmarks = dict(bookmarks)
+
         paginator = Paginator(messages, 12)
         page = request.GET.get('page')
         messages = paginator.page(page)
-        email_list = email_response(messages, service)
+        email_list = email_response(messages, service, bookmarks)
 
     return JsonResponse(email_list, status=200, safe=False)
 
@@ -236,7 +245,11 @@ def email_bookmark(request):
         page = request.GET.get('page')
         messages = paginator.page(page)
 
-        email_list = email_response(messages, service)
+        bookmarks = Bookmark.objects.filter(
+            user=request.user.id).values_list('email_id', 'id')
+        bookmarks = dict(bookmarks)
+
+        email_list = email_response(messages, service, bookmarks)
 
     return JsonResponse(email_list, status=200, safe=False)
 
