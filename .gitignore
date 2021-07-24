@@ -1,5 +1,6 @@
 
 /pinch/pinch/secrets.json
+/pinch/pinch/secrets_dev.json
 /pinch/pinch/client_secrets.json
 /pinch/pinch/client_secrets_.json
 # PyInstaller
