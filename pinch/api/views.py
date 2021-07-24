@@ -139,7 +139,7 @@ def email_response(messages, service, bookmarks):
             images = bs.find_all('img')
 
             for img in images:
-                if img.has_attr('src') and img['src'].endswith('.png'):
+                if img.has_attr('src') and (img['src'].endswith('.png') or img['src'].endswith('.jpg')):
                     image = img['src']
                     break
 
