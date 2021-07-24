@@ -109,7 +109,6 @@ def email_response(messages, service, bookmarks):
             headers = payload['headers']
             snippet = txt['snippet']
             labels = txt["labelIds"]
-            print(labels)
 
             # parse the sender
             for d in headers:
@@ -200,7 +199,6 @@ def email_list(request):
     if search:
         q += '"{}"'.format(search)
 
-    print(q)
     result = service.users().messages().list(
         userId='me', q=q).execute()
 
