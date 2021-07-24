@@ -290,12 +290,13 @@ class SubscriptionViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
 
     @ login_decorator_viewset
     def create(self, request, *args, **kwargs):
+        user = User.objects.get(id=request.user.id)
         for data in request.data:
             try:
-                data.update({"user": [request.user.id]})
-                serializer = self.get_serializer(data=data)
-                serializer.is_valid(raise_exception=True)
-                self.perform_create(serializer)
+                subscription, _ = Subscription.objects.get_or_create(
+                    email_address=data["email_address"])
+                subscription.user.add(user)
+                subscription.save()
             except:
                 pass
 
