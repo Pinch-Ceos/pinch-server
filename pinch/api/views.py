@@ -132,7 +132,16 @@ def email_response(messages, service, bookmarks):
 
             # data 로직 잘 살펴보기
             # TO-DO 다른 데이터 있는것도 살펴보기
-            data = payload['body']['data']
+            parts = payload.get('parts', None)
+            if not parts:
+                data = payload['body']['data']
+
+            else:
+                for p in parts:
+                    if p['mimeType'] == 'text/html':
+                        data = p['body']['data']
+                        break
+
             data = data.replace("-", "+").replace("_", "/")
             data = base64.b64decode(data)
             bs = BeautifulSoup(data, "html.parser")
@@ -273,9 +282,19 @@ def email_detail(request):
         userId='me', id=email_id).execute()
 
     labels = txt["labelIds"]
+    payload = txt['payload']
 
     # data 로직 잘 살펴보기
-    data = txt['payload']['body']['data']
+    parts = payload.get('parts', None)
+    if not parts:
+        data = payload['body']['data']
+
+    else:
+        for p in parts:
+            if p['mimeType'] == 'text/html':
+                data = p['body']['data']
+                break
+
     data = data.replace("-", "+").replace("_", "/")
     data = base64.b64decode(data)
 
@@ -298,8 +317,9 @@ class SubscriptionViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, vie
         user = User.objects.get(id=request.user.id)
         for data in request.data:
             try:
-                subscription, _ = Subscription.objects.get_or_create(
+                subscription, created = Subscription.objects.get_or_create(
                     email_address=data["email_address"])
+                subscription.name = data["name"]
                 subscription.user.add(user)
                 subscription.save()
             except:
