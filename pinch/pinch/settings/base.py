@@ -15,10 +15,13 @@ import os
 import json
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))
 
-with open(os.path.join(BASE_DIR, 'secrets_dev.json'), 'rb') as secret_file:
+
+with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'secrets.json'), 'rb') as secret_file:
     secrets = json.load(secret_file)
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
@@ -27,12 +30,7 @@ with open(os.path.join(BASE_DIR, 'secrets_dev.json'), 'rb') as secret_file:
 SECRET_KEY = secrets['SECRET_KEY']  # Hide the secret key
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = [
-    '127.0.0.1',
-    '.ap-northeast-2.compute.amazonaws.com',
-]
+# DEBUG = True
 
 
 # Application definition
@@ -96,7 +94,7 @@ REST_FRAMEWORK = {
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-DATABASES = secrets['DB_SETTINGS']
+# DATABASES = secrets['DB_SETTINGS']
 
 
 # Password validation
