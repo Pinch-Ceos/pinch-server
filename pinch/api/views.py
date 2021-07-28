@@ -148,7 +148,7 @@ def email_response(messages, service, bookmarks):
             images = bs.find_all('img')
 
             for img in images:
-                if img.has_attr('src') and (img['src'].endswith('.png') or img['src'].endswith('.jpg')):
+                if img.has_attr('src') and (img['src'].endswith('.png') or img['src'].endswith('.jpg') or img['src'].endswith('.gif')):
                     image = img['src']
                     break
 
@@ -266,6 +266,48 @@ def email_bookmark(request):
         email_list = email_response(messages, service, bookmarks)
 
     return JsonResponse(email_list, status=200, safe=False)
+
+
+@ login_decorator
+def email_detail_info(request):
+    user = User.objects.get(id=request.user.id)
+    storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
+    creds = storage.get()
+
+    bookmarks = Bookmark.objects.filter(
+        user=request.user.id).values_list('email_id', 'id')
+    bookmarks = dict(bookmarks)
+
+    service = build('gmail', 'v1', credentials=creds)
+
+    email_id = request.GET.get("email_id")
+
+    txt = service.users().messages().get(
+        userId='me', id=email_id).execute()
+
+    payload = txt['payload']
+    headers = payload['headers']
+    # parse the sender
+    for d in headers:
+        if d['name'] == 'From':
+            sender = d['value']
+        if d['name'] == 'Subject':
+            subject = d['value']
+
+    i = sender.rfind("<")
+    name = sender[:i-1:]
+    name = name.replace('"', '')
+    name = name.replace("\\", '')\
+
+    bookmark_id = None
+    if email_id in bookmarks:
+        bookmark_id = bookmarks[email_id]
+
+    return JsonResponse({
+        'name': name,
+        'subject': subject,
+        'bookmark_id': bookmark_id,
+    }, json_dumps_params={'ensure_ascii': False}, status=200)
 
 
 @ login_decorator
