@@ -184,7 +184,8 @@ def email_list(request):
     service = build('gmail', 'v1', credentials=creds)
 
     subscription = request.GET.get("subscription", None)
-    search = request.GET.get("search")
+    search = request.GET.get("search", None)
+    unread = request.GET.get("unread", None)
 
     email_list = []
 
@@ -213,10 +214,14 @@ def email_list(request):
     if search:
         q += '"{}"'.format(search)
 
-    result = service.users().messages().list(
-        userId='me', q=q).execute()
+    if unread == 'True':
+        q += "label:UNREAD "
+
+    result = service.users().messages().list(maxResults=500,
+                                             userId='me', q=q).execute()
 
     messages = result.get('messages')
+    size = len(messages)
 
     if messages:
         # pagination logic
@@ -230,7 +235,11 @@ def email_list(request):
         messages = paginator.page(page)
         email_list = email_response(messages, service, bookmarks)
 
-    return JsonResponse(email_list, status=200, safe=False)
+    return JsonResponse(
+        {'num_of_email': size,
+         'email_list': email_list
+         },
+        status=200, safe=False)
 
 
 @ login_decorator
