@@ -24,6 +24,7 @@ class User(Base):
     name = models.CharField(max_length=100)
     email_address = models.CharField(max_length=254, unique=True)
     read_num = models.IntegerField(default=0)
+    profile_picture = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
         return self.email_address

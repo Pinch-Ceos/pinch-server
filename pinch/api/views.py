@@ -31,6 +31,7 @@ def user_info(request):
         return JsonResponse({
             'user_name': user.name,
             'user_email_address': user.email_address,
+            'profile_picture': user.profile_picture,
             'subscriptions': sub_list,
             'subscription_num': subscription_num,
             'bookmark_num': bookmark_num,

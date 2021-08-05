@@ -36,20 +36,9 @@ def google_login(request):
 로그인 후 받은 인가코드를 통해 oauth 인증
 '''
 
+
 @csrf_exempt
 def google_callback(request):
-
-    # 테스트 용 코드
-    # flow = InstalledAppFlow.from_client_secrets_file(
-    #     'pinch/client_secrets_.json',
-    #     scopes=['openid',
-    #             'https://www.googleapis.com/auth/userinfo.email',
-    #             'https://www.googleapis.com/auth/userinfo.profile',
-    #             'https://www.googleapis.com/auth/gmail.readonly',
-    #             'https://www.googleapis.com/auth/gmail.labels',
-    #             'https://www.googleapis.com/auth/gmail.modify'])
-
-    # flow.run_local_server()
 
     code = json.loads(request.body)['code']
     print(request.body)
@@ -64,6 +53,7 @@ def google_callback(request):
 
     email_addr = user_document['email']
     name = user_document['name']
+    picture = user_document['picture']
 
     try:
         # 기존 고객
@@ -75,6 +65,7 @@ def google_callback(request):
 
         # 이름 정보 업데이트
         user.name = name
+        user.profile_picture = picture
         user.save()
 
         # jwt 발급
@@ -86,14 +77,15 @@ def google_callback(request):
         bookmark_num = Bookmark.objects.filter(user=user).count()
 
         for sub in subscriptions:
-            dic = d = {'id': sub.id, 'name': sub.name,
-                       'email_address': sub.email_address}
+            dic = {'id': sub.id, 'name': sub.name,
+                   'email_address': sub.email_address}
             sub_list.append(dic)
 
         return JsonResponse({
             'token': token,
             'user_name': name,
             'user_email_address': email_addr,
+            'profile_picture': picture,
             'subscriptions': sub_list,
             'subscription_num': subscription_num,
             'bookmark_num': bookmark_num,
@@ -103,7 +95,7 @@ def google_callback(request):
     except User.DoesNotExist:
 
         user = User.objects.create(
-            name=name, email_address=email_addr)
+            name=name, email_address=email_addr, profile_picture=picture)
         storage = DjangoORMStorage(Credentials, 'id', user, 'credential')
         storage.put(creds)
 
@@ -113,5 +105,6 @@ def google_callback(request):
         return JsonResponse({
             'token': token,
             'user_name': name,
-            'user_email_address': email_addr
+            'user_email_address': email_addr,
+            'profile_picture': picture,
         }, json_dumps_params={'ensure_ascii': False}, status=200)
