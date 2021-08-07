@@ -63,7 +63,8 @@ MIDDLEWARE = [
 # CORS
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = ['http://localhost:3000',
-                         'http://222.112.5.25:3000']
+                         'http://222.112.5.25:3000',
+                         'http://3.36.217.118:80']
 
 ROOT_URLCONF = 'pinch.urls'
 
