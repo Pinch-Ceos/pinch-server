@@ -17,7 +17,8 @@ flow = Flow.from_client_secrets_file(
             'https://www.googleapis.com/auth/gmail.readonly',
             'https://www.googleapis.com/auth/gmail.labels',
             'https://www.googleapis.com/auth/gmail.modify'],
-    redirect_uri='http://localhost:3000/redirect')
+    # redirect_uri='http://localhost:3000/redirect')
+    redirect_uri='http://3.36.217.118/redirect')
 
 
 '''
