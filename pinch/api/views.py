@@ -206,7 +206,12 @@ def email_list(request):
         subscriptions = Subscription.objects.filter(
             user=user).values_list('email_address', flat=True)
         if not subscriptions:
-            return JsonResponse(email_list, status=200, safe=False)
+            size = 0
+            return JsonResponse(
+                {'num_of_email': size,
+                 'email_list': email_list
+                 },
+                status=200, safe=False)
 
         for sub in subscriptions:
             q += "from:{} ".format(sub)
