@@ -62,6 +62,15 @@ MIDDLEWARE = [
 
 # CORS
 CORS_ORIGIN_ALLOW_ALL = False
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    'http://pinchstory.xyz',
+    'https://pinchstory.xyz'
+]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    'http://pinchstory.xyz',
+    'https://pinchstory.xyz'
+]
 CORS_ORIGIN_WHITELIST = ['http://localhost:3000',
                          'http://222.112.5.25:3000',
                          'http://3.36.217.118:80',
