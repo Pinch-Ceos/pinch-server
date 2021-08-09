@@ -238,8 +238,11 @@ def email_list(request):
 
         paginator = Paginator(messages, 12)
         page = request.GET.get('page')
-        messages = paginator.page(page)
-        email_list = email_response(messages, service, bookmarks)
+        try:
+            messages = paginator.page(page)
+            email_list = email_response(messages, service, bookmarks)
+        except:
+            pass
 
     return JsonResponse(
         {'num_of_email': size,
