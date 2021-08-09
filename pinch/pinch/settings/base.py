@@ -65,11 +65,13 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     'http://pinchstory.xyz',
-    'https://pinchstory.xyz'
+    'https://pinchstory.xyz',
+    'http://localhost:3000',
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     'http://pinchstory.xyz',
-    'https://pinchstory.xyz'
+    'https://pinchstory.xyz',
+    'http://localhost:3000',
 ]
 CORS_ORIGIN_WHITELIST = ['http://localhost:3000',
                          'http://222.112.5.25:3000',
