@@ -108,4 +108,5 @@ def google_callback(request):
             'user_name': name,
             'user_email_address': email_addr,
             'profile_picture': picture,
+            'subscriptions': []
         }, json_dumps_params={'ensure_ascii': False}, status=200)
