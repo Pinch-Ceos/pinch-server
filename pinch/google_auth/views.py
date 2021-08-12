@@ -17,8 +17,8 @@ flow = Flow.from_client_secrets_file(
             'https://www.googleapis.com/auth/gmail.readonly',
             'https://www.googleapis.com/auth/gmail.labels',
             'https://www.googleapis.com/auth/gmail.modify'],
-    # redirect_uri='http://localhost:3000/redirect')
-    redirect_uri='https://pinchstory.xyz/redirect')
+    redirect_uri='http://localhost:3000/redirect')
+# redirect_uri='https://pinchstory.xyz/redirect')
 
 
 '''
@@ -42,9 +42,10 @@ def google_login(request):
 def google_callback(request):
 
     code = json.loads(request.body)['code']
-    print(request.body)
-    print("code", code)
-    flow.fetch_token(code=code)
+    try:
+        flow.fetch_token(code=code)
+    except:
+        return JsonResponse({"error_code": "INVALID_GOOGLE_OAUTH_CODE"}, status=401)
 
     creds = flow.credentials
 
