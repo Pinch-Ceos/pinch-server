@@ -189,6 +189,7 @@ def email_list(request):
     unread = request.GET.get("unread", None)
 
     email_list = []
+    size = 0
 
     q = ""
     if subscription:
@@ -227,11 +228,10 @@ def email_list(request):
                                              userId='me', q=q).execute()
 
     messages = result.get('messages')
-    size = len(messages)
 
     if messages:
         # pagination logic
-        # TO-DO : 100개 이상이면 추가로 불러오기
+        size = len(messages)
         bookmarks = Bookmark.objects.filter(
             user=request.user.id).values_list('email_id', 'id')
         bookmarks = dict(bookmarks)
