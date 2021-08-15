@@ -2,7 +2,6 @@
 
 뉴스레터 정리 서비스 Pinch 의 REST API 서버입니다.
 <br>
-서버 uri는 https://pinchserver.shop 입니다.
 
 [API 문서 링크](https://documenter.getpostman.com/view/15189759/Tzm9huBY)
 
